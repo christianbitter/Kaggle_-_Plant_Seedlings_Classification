@@ -4,7 +4,7 @@ from tensorflow import keras
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import itertools
-
+import os
 
 def _int64_feature(value):
   return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
@@ -14,7 +14,10 @@ def _bytes_feature(value):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def get_image_binary(fp:str):
+def get_image_binary(fp: str):
+    if not (fp and os.path.exists(fp)):
+        raise ValueError("get_image_binary - file path to image not defined")
+
     image = Image.open(fp)
     image = np.asarray(image, np.uint8)
     shape = np.array(image.shape, np.int32)
@@ -77,11 +80,13 @@ def plot_confusion_matrix(cm, classes,
     plt.tight_layout()
 
 
-def vgg_layer(filter_size:int, input, padding:str='same', activation:str='relu'):
+def vgg_layer(filter_size: int, input, padding: str='same', activation: str='relu', kernel_size: (int, int)=(3, 3),
+              pool_size: (int, int) =(2, 2),
+              no_conv_blocks: int = 2):
     x = input
-    x = keras.layers.Conv2D(filters=filter_size, kernel_size=(3, 3), padding=padding)(x)
-    x = keras.layers.Conv2D(filters=filter_size, kernel_size=(3, 3), padding=padding)(x)
+    for _ in range(no_conv_blocks):
+        x = keras.layers.Conv2D(filters=filter_size, kernel_size=kernel_size, padding=padding)(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.Activation(activation=activation)(x)
-    x = keras.layers.MaxPool2D(pool_size=(2, 2), padding='same')(x)
+    x = keras.layers.MaxPool2D(pool_size=pool_size, padding='same')(x)
     return x

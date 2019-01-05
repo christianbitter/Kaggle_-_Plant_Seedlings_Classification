@@ -73,7 +73,7 @@ class ImageClassificationModel(Model):
             raise ValueError("ImageClassificationModel._load_classes - no classes provided")
 
     def _global_preprocess(self, data, label, **kwargs):
-        raise ValueError("_global_preprocess - not implemented")
+        return data, label
 
     def _parse_tfrecord(self, tfrecord_proto):
         raise ValueError("ImageClassificationModel._parse_tfrecord - not implemented")
@@ -149,6 +149,7 @@ class ImageClassificationModel(Model):
 
         return {
             "class_id": ci,
+            "probability": np.max(s),
             "class_name": self.classid_to_class(ci),
             "predictions": s
         }
@@ -162,12 +163,10 @@ class ImageClassificationModel(Model):
         # image_datagen.fit(None, augment=True, seed=seed)
         image_generator = image_datagen.flow_from_directory(input_dir_fp,
                                                             target_size=(self.image_width, self.image_height),
+                                                            color_mode="rgb",
                                                             class_mode="categorical",
                                                             seed=seed)
-        s = self.model.predict_generator(image_generator,
-                                         steps=None, max_queue_size=10,
-                                         workers=1, use_multiprocessing=False,
-                                         verbose=self.verbose)
+        s = self.model.predict_generator(image_generator, max_queue_size=10, workers=1, use_multiprocessing=False, verbose=self.verbose)
 
         predicted_class_indices = np.argmax(s, axis=1)
         actual_class_name = [os.path.dirname(fn).lower() for fn in image_generator.filenames]
